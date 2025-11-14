@@ -4,51 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>奇可智能打卡系統</title>
-
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
 <style>
-  body { font-family:'Arial',sans-serif; background:#f7f7fb; display:flex; flex-direction:column; align-items:center; padding:20px;}
-  h3 { color:#2c3e50; margin-bottom:15px;}
-  #status { margin:15px 0; text-align:center; font-size:18px; line-height:1.8; }
-  button { padding:15px 30px; font-size:18px; border:none; border-radius:10px; cursor:pointer; margin-top:20px; background:#3498db; color:white; }
-  .onTime { color:#27ae60; font-weight:bold; }
-  .late { color:#e67e22; font-weight:bold; }
-  .absent { color:#c0392b; font-weight:bold; }
+body { font-family:'Arial',sans-serif; background:#f7f7fb; display:flex; flex-direction:column; align-items:center; padding:20px;}
+h3 { color:#2c3e50; margin-bottom:15px;}
+#status { margin:15px 0; text-align:center; font-size:18px; line-height:1.8; }
+button { padding:15px 30px; font-size:18px; border:none; border-radius:10px; cursor:pointer; margin-top:20px; background:#3498db; color:white; }
+.onTime { color:#27ae60; font-weight:bold; }
+.late { color:#e67e22; font-weight:bold; }
+.absent { color:#c0392b; font-weight:bold; }
 </style>
 </head>
-
-
 <body>
 <h3>奇可智能打卡系統</h3>
 <div id="status">載入中...</div>
 <button id="clockInBtn">一鍵打卡</button>
-
 
 <script>
 // ==========================
 // CONFIG
 // ==========================
 const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyAZjq0ww8Zv542pypZqQqRckxlCjgRewsHmwnG2y32MCL7wBUC9e1m069XSh8XIDa7/exec";
-
-const COMPANY_IPS = [
-  "114.34.60.48",
-  "220.132.124.179",
-  "125.228.248.110",
-  "114.34.128.159",
-  "220.134.230.241"
-];
-
+const COMPANY_IPS = ["114.34.60.48","220.132.124.179","125.228.248.110","114.34.128.159","220.134.230.241"];
 
 // ==========================
-// 基本功能：取得 User Profile
+// 取得 userId（穩定方式）
 // ==========================
-async function getUserId() {
-  const profile = await liff.getProfile();
-  return profile.userId;
+function getUserId() {
+  const token = liff.getDecodedIDToken();
+  return token ? token.sub : null;
 }
-
 
 // ==========================
 // 取得使用者 IP
@@ -63,48 +49,45 @@ async function getUserIP() {
   }
 }
 
-
 // ==========================
 // 更新今日狀態
 // ==========================
 async function updateStatus() {
-  const userId = await getUserId();
-  const today = new Date().toLocaleDateString("zh-TW");
-
-  const res = await fetch(API_ENDPOINT);
-  const sheetData = await res.json();
-
-  const row = sheetData.find(r => r[0] === today && r[1] === userId);
-  let html = "";
-
-  if (!row) {
-    document.getElementById("status").innerHTML =
-      `<span class="absent">今日尚未打卡</span>`;
+  const userId = getUserId();
+  if(!userId) {
+    document.getElementById("status").innerHTML = "無法取得 userId，請於 LINE 內使用";
     return;
   }
 
-  // 上班狀態
-  if (row[2]) {
-    const ip = row[3] || "";
-    const pureIp = ip.replace("（異地）", "");
-    const isCompany = COMPANY_IPS.includes(pureIp);
+  const today = new Date().toLocaleDateString("zh-TW").replace(/\//g,'/');
 
-    html += `上班：<span class="${isCompany ? "onTime" : "late"}">
-      ${new Date(row[2]).toLocaleTimeString()} ${ip.includes("異地") ? "⚠" : ""}
-    </span><br>`;
+  const res = await fetch(API_ENDPOINT);
+  const sheetData = await res.json();
+  const row = sheetData.find(r => r[0] === today && r[1] === userId);
+
+  let html = "";
+  if(!row){
+    html = `<span class="absent">今日尚未打卡</span>`;
+    document.getElementById("status").innerHTML = html;
+    return;
+  }
+
+  // 上班
+  if(row[2]){
+    const ip = row[3] || "";
+    const pureIp = ip.replace("（異地）","");
+    const isCompany = COMPANY_IPS.includes(pureIp);
+    html += `上班：<span class="${isCompany?"onTime":"late"}">${new Date(row[2]).toLocaleTimeString()}${ip.includes("異地")?" ⚠異地":""}</span><br>`;
   } else {
     html += `上班：<span class="absent">尚未打卡</span><br>`;
   }
 
-  // 下班狀態
-  if (row[4]) {
+  // 下班
+  if(row[4]){
     const ip = row[5] || "";
-    const pureIp = ip.replace("（異地）", "");
+    const pureIp = ip.replace("（異地）","");
     const isCompany = COMPANY_IPS.includes(pureIp);
-
-    html += `下班：<span class="${isCompany ? "onTime" : "late"}">
-      ${new Date(row[4]).toLocaleTimeString()} ${ip.includes("異地") ? "⚠" : ""}
-    </span>`;
+    html += `下班：<span class="${isCompany?"onTime":"late"}">${new Date(row[4]).toLocaleTimeString()}${ip.includes("異地")?" ⚠異地":""}</span>`;
   } else {
     html += `下班：<span class="absent">尚未打卡</span>`;
   }
@@ -112,56 +95,42 @@ async function updateStatus() {
   document.getElementById("status").innerHTML = html;
 }
 
-
 // ==========================
-// 打卡按鈕
+// 打卡功能
 // ==========================
 async function clockIn() {
-  const userId = await getUserId();
+  const userId = getUserId();
+  if(!userId){
+    Swal.fire({icon:"warning", title:"無法取得 userId，請於 LINE 內使用"});
+    return;
+  }
   const userIp = await getUserIP();
 
-  const res = await fetch(API_ENDPOINT, {
-    method: "POST",
-    body: JSON.stringify({ userId, userIp })
+  const res = await fetch(API_ENDPOINT,{
+    method:"POST",
+    body: JSON.stringify({userId,userIp})
   });
-
   const data = await res.json();
 
-  if (data.message.includes("成功")) {
-    Swal.fire({
-      icon: "success",
-      title: `${data.action}打卡成功！${data.ip.includes("異地") ? " ⚠異地" : ""}`,
-      timer: 2000,
-      showConfirmButton: false
-    });
-
+  if(data.message.includes("成功")){
+    Swal.fire({icon:"success", title:`${data.action}打卡成功！${!COMPANY_IPS.includes(userIp)?"⚠ 異地打卡":""}`, timer:2000, showConfirmButton:false});
     updateStatus();
-  } else {
-    Swal.fire({
-      icon: "warning",
-      title: data.message
-    });
+  }else{
+    Swal.fire({icon:"warning", title:data.message});
   }
 }
-
 
 // ==========================
 // LIFF 初始化
 // ==========================
-liff.init({ liffId: "2008493252-eAMXGMPd" })
-  .then(() => {
-    if (!liff.isLoggedIn()) {
-      liff.login();
-      return;
-    }
-    updateStatus();
-  });
+liff.init({liffId:"2008493252-eAMXGMPd"})
+.then(()=>{
+  if(!liff.isLoggedIn()){ liff.login(); return; }
+  updateStatus();
+});
 
 document.getElementById("clockInBtn").addEventListener("click", clockIn);
 
 </script>
-
 </body>
 </html>
-
-
