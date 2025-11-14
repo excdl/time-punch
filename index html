@@ -87,7 +87,7 @@ async function clockIn() {
 }
 
 // LIFF 初始化
-liff.init({liffId:"你的LIFF_ID"}).then(() => {
+liff.init({liffId:"2008493252-eAMXGMPd"}).then(() => {
   updateStatus();
 });
 
