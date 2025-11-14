@@ -1,136 +1,49 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>奇可智能打卡系統</title>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<style>
-body { font-family:'Arial',sans-serif; background:#f7f7fb; display:flex; flex-direction:column; align-items:center; padding:20px;}
-h3 { color:#2c3e50; margin-bottom:15px;}
-#status { margin:15px 0; text-align:center; font-size:18px; line-height:1.8; }
-button { padding:15px 30px; font-size:18px; border:none; border-radius:10px; cursor:pointer; margin-top:20px; background:#3498db; color:white; }
-.onTime { color:#27ae60; font-weight:bold; }
-.late { color:#e67e22; font-weight:bold; }
-.absent { color:#c0392b; font-weight:bold; }
-</style>
+  <meta charset="UTF-8">
+  <title>LINE LIFF 打卡</title>
 </head>
 <body>
-<h3>奇可智能打卡系統</h3>
-<div id="status">載入中...</div>
-<button id="clockInBtn">一鍵打卡</button>
+  <button onclick="checkIn()">打卡</button>
 
-<script>
-// ==========================
-// CONFIG
-// ==========================
-const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyYMYDKayX9-hrj_eX_mF09GUXHj0KTH5MPbKyqj_h8T5LiH21DlN6HspRAjTIFDHlL/exec";
-const COMPANY_IPS = ["114.34.60.48","220.132.124.179","125.228.248.110","114.34.128.159","220.134.230.241"];
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    async function checkIn() {
+      await liff.init({ liffId: "2008493252-eAMXGMPd" });
 
-// ==========================
-// 取得 userId（穩定方式）
-// ==========================
-function getUserId() {
-  const token = liff.getDecodedIDToken();
-  return token ? token.sub : null;
-}
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
 
-// ==========================
-// 取得使用者 IP
-// ==========================
-async function getUserIP() {
-  try {
-    const res = await fetch("https://api.ipify.org?format=json");
-    const data = await res.json();
-    return data.ip;
-  } catch {
-    return "無法取得IP";
-  }
-}
+      // 取得使用者資訊
+      const profile = await liff.getProfile();
 
-// ==========================
-// 更新今日狀態
-// ==========================
-async function updateStatus() {
-  const userId = getUserId();
-  if(!userId) {
-    document.getElementById("status").innerHTML = "無法取得 userId，請於 LINE 內使用";
-    return;
-  }
+      // 取得使用者 IP
+      const ipRes = await fetch('https://api.ipify.org?format=json');
+      const ipData = await ipRes.json();
 
-  const today = new Date().toLocaleDateString("zh-TW").replace(/\//g,'/');
+      const data = {
+        userId: profile.userId,
+        displayName: profile.displayName,
+        ip: ipData.ip
+      };
 
-  const res = await fetch(API_ENDPOINT);
-  const sheetData = await res.json();
-  const row = sheetData.find(r => r[0] === today && r[1] === userId);
+      // POST 到 Google Apps Script Web App
+      const response = await fetch("https://script.google.com/macros/s/AKfycbyuJq4VNtzwPjoAEmrKdVz0xHc2QclqQDL052YGm7RzMLTH4v3MTTWCoPxy5a8J-2ib/exec", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" }
+      });
 
-  let html = "";
-  if(!row){
-    html = `<span class="absent">今日尚未打卡</span>`;
-    document.getElementById("status").innerHTML = html;
-    return;
-  }
-
-  // 上班
-  if(row[2]){
-    const ip = row[3] || "";
-    const pureIp = ip.replace("（異地）","");
-    const isCompany = COMPANY_IPS.includes(pureIp);
-    html += `上班：<span class="${isCompany?"onTime":"late"}">${new Date(row[2]).toLocaleTimeString()}${ip.includes("異地")?" ⚠異地":""}</span><br>`;
-  } else {
-    html += `上班：<span class="absent">尚未打卡</span><br>`;
-  }
-
-  // 下班
-  if(row[4]){
-    const ip = row[5] || "";
-    const pureIp = ip.replace("（異地）","");
-    const isCompany = COMPANY_IPS.includes(pureIp);
-    html += `下班：<span class="${isCompany?"onTime":"late"}">${new Date(row[4]).toLocaleTimeString()}${ip.includes("異地")?" ⚠異地":""}</span>`;
-  } else {
-    html += `下班：<span class="absent">尚未打卡</span>`;
-  }
-
-  document.getElementById("status").innerHTML = html;
-}
-
-// ==========================
-// 打卡功能
-// ==========================
-async function clockIn() {
-  const userId = getUserId();
-  if(!userId){
-    Swal.fire({icon:"warning", title:"無法取得 userId，請於 LINE 內使用"});
-    return;
-  }
-  const userIp = await getUserIP();
-
-  const res = await fetch(API_ENDPOINT,{
-    method:"POST",
-    body: JSON.stringify({userId,userIp})
-  });
-  const data = await res.json();
-
-  if(data.message.includes("成功")){
-    Swal.fire({icon:"success", title:`${data.action}打卡成功！${!COMPANY_IPS.includes(userIp)?"⚠ 異地打卡":""}`, timer:2000, showConfirmButton:false});
-    updateStatus();
-  }else{
-    Swal.fire({icon:"warning", title:data.message});
-  }
-}
-
-// ==========================
-// LIFF 初始化
-// ==========================
-liff.init({liffId:"2008493252-eAMXGMPd"})
-.then(()=>{
-  if(!liff.isLoggedIn()){ liff.login(); return; }
-  updateStatus();
-});
-
-document.getElementById("clockInBtn").addEventListener("click", clockIn);
-
-</script>
+      const result = await response.json();
+      if (result.status === "success") {
+        alert("打卡成功！");
+      } else {
+        alert("打卡失敗：" + result.message);
+      }
+    }
+  </script>
 </body>
 </html>
