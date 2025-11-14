@@ -25,7 +25,7 @@ button { padding:15px 30px; font-size:18px; border:none; border-radius:10px; cur
 // ==========================
 // CONFIG
 // ==========================
-const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyAZjq0ww8Zv542pypZqQqRckxlCjgRewsHmwnG2y32MCL7wBUC9e1m069XSh8XIDa7/exec";
+const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyYMYDKayX9-hrj_eX_mF09GUXHj0KTH5MPbKyqj_h8T5LiH21DlN6HspRAjTIFDHlL/exec";
 const COMPANY_IPS = ["114.34.60.48","220.132.124.179","125.228.248.110","114.34.128.159","220.134.230.241"];
 
 // ==========================
