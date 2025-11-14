@@ -27,7 +27,7 @@
         ip: ipData.ip
       };
 
-      const response = await fetch("https://script.google.com/macros/s/AKfycbzSnnDtwDXcde7LL76_BTNpBMSDEHTZt0_uDRyC508GgnTOT81IQV43wUKGVzIn9eO_/exec", {
+      const response = await fetch("https://script.google.com/macros/s/AKfycbyr0pGoi1eitNuZOlBDZNh8x-5_hYI2BWDj3_sDSCXv4-LpIRgowRHVCh_kkxb_HYJs/exec", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" }
