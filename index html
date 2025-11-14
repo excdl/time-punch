@@ -18,7 +18,7 @@
   <pre id="job-list"></pre>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbzHgLmQ7ri0SRYIqjKnheYJdu-0CEJ7gfbmL1CXeaxZrbRPl_YieoAlW1SisBHN-_SC/exec"; // 替換成你的 GAS Web App URL
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwqv_7CzjC0O8grQC1WXnOsxcvb8XChVsX2lwoZ-VnvMk3dJa1-ZykSVf5Q7tDmDZ-q/exec"; // 替換成你的 GAS Web App URL
 
     async function main() {
       await liff.init({ liffId: "2008493252-eAMXGMPd" }); // 替換成你的 LIFF ID
