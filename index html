@@ -17,17 +17,22 @@
         return;
       }
 
+      // 取得 LINE 使用者資訊
       const profile = await liff.getProfile();
+
+      // 取得使用者公網 IP
       const ipRes = await fetch('https://api.ipify.org?format=json');
       const ipData = await ipRes.json();
 
+      // 準備傳給 Google Apps Script 的資料
       const data = {
         userId: profile.userId,
         displayName: profile.displayName,
         ip: ipData.ip
       };
 
-      const response = await fetch("https://script.google.com/macros/s/AKfycbxbAV57MxUGlhncIGv1hqltfNXZZdC_6GwcaHqJuvyZ9uPtV3arAhJe2wDkeE9vxEXi/exec", {
+      // POST 到 Web App
+      const response = await fetch("https://script.google.com/macros/s/AKfycbyjU1TyUayOE_I-VLZ_T7fVfwXfLW34A-WojaGHAyvZCCP3R-pync3CcwrC3OULgc-l/exec", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" }
