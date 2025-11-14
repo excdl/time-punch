@@ -15,7 +15,7 @@
 <p id="ipStatus"></p>
 
 <script>
-const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyemW5klQqHVhVlcXskuSW12_5Vq-6NNua1mOHoy9fgsX6yfo2gfBRTBvk9B3GemIB6/exec";
+const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyW-RPnWbUP3tDk1gnWDs-wnIIXVn-8nVu-Ce1IvaRAGvQrnewbbrCvY8y_6RGS_pJO/exec";
 const COMPANY_IPS = ["43.227.24.78","43.226.232.126"];
 let userIpCache = null;
 
