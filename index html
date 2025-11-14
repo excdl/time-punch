@@ -18,10 +18,10 @@
   <pre id="job-list"></pre>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxiCw_ru-Y5bmzMZH8lXqYdzVm0FDCchz4V5duUnAwAJQEzOzAi3dn2_7X39tiRHxey/exec"; // 替換成你的 GAS Web App URL
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzrEmS123ba7fy4GY2Jv_NOxAqVK7EOsurDq8b5bJgWjx9TAfQAr_zPdo_fkG_e5Kyh/exec"; // 替換成你的 Web App URL
 
     async function main() {
-      await liff.init({ liffId: "2008493252-eAMXGMPd" }); // 替換成你的 LIFF ID
+      await liff.init({ liffId: "https://liff.line.me/2008493252-eAMXGMPd" }); // 替換成你的 LIFF ID
       if (!liff.isLoggedIn()) liff.login();
       else {
         const profile = await liff.getProfile();
@@ -30,7 +30,6 @@
       }
     }
 
-    // 取得使用者 IP
     async function getUserIP() {
       try {
         const res = await fetch("https://api.ipify.org?format=json");
@@ -42,7 +41,7 @@
     }
 
     async function clockIn(action) {
-      const ip = await getUserIP();  // 抓 IP
+      const ip = await getUserIP();
       const payload = {
         type: "clock",
         userId: window.userProfile.userId,
@@ -77,3 +76,4 @@
   </script>
 </body>
 </html>
+
