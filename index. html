@@ -1,103 +1,110 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<title>LIFF 打卡系統</title>
-<script src="https://static.line-scdn.net/liff/edge/2.22/sdk.js"></script>
+<meta charset="UTF-8" />
+<title>奇可智能打卡</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+  body { font-family: Arial,sans-serif; text-align:center; padding:20px; }
+</style>
 </head>
 <body>
-<h1>LIFF 打卡系統</h1>
-<p id="user-info"></p>
-
-<button onclick="clockIn('上班')">上班</button>
-<button onclick="clockIn('下班')">下班</button>
-<button onclick="clockIn('加班上班')">加班上班</button>
-<button onclick="clockIn('加班下班')">加班下班</button>
-<button onclick="getJobOpportunities()">查詢工作機會</button>
-<button onclick="showTodayRecords()">今天打卡紀錄</button>
-
-<h3>工作機會</h3>
-<ul id="job-list"></ul>
-
-<h3>今天打卡紀錄</h3>
-<ul id="today-list"></ul>
+<h3>謝謝使用奇可智能打卡系統</h3>
+<p id="status">初始化中...</p>
+<p id="ipStatus"></p>
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzLVmhycdt7NMESiw6RbV0OoT1f-5QfkYx9S4iWdkkOH1oz-ngL-qqnrYlwFpoXHe-n/exec"; // 改成你的 Web App URL
+const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyemW5klQqHVhVlcXskuSW12_5Vq-6NNua1mOHoy9fgsX6yfo2gfBRTBvk9B3GemIB6/exec";
+const COMPANY_IPS = ["43.227.24.78","43.226.232.126"];
+let userIpCache = null;
 
-async function main() {
-  await liff.init({ liffId: "2008493252-eAMXGMPd" });
-  if (!liff.isLoggedIn()) liff.login();
-  else {
-    const profile = await liff.getProfile();
-    document.getElementById('user-info').innerText = `Hi, ${profile.displayName} (ID: ${profile.userId})`;
-    window.userProfile = profile;
-  }
-}
-
+// 取得 IP
 async function getUserIP() {
+  if (userIpCache) return userIpCache;
   try {
     const res = await fetch("https://api.ipify.org?format=json");
     const data = await res.json();
-    return data.ip || "無法取得IP";
-  } catch { return "無法取得IP"; }
+    userIpCache = data.ip;
+    return data.ip;
+  } catch (err) {
+    console.error(err);
+    return "未知";
+  }
 }
 
-async function clockIn(action) {
+// LIFF 初始化
+async function initLiff() {
+  await liff.init({ liffId: "2008493252-eAMXGMPd" });
+  if (!liff.isLoggedIn()) {
+    liff.login();
+  } else {
+    const profile = await liff.getProfile();
+    document.getElementById("status").textContent = `歡迎 ${profile.displayName}，準備打卡...`;
+    startClockIn(profile);
+  }
+}
+
+// 打卡
+async function startClockIn(profile) {
   const ip = await getUserIP();
+  const now = new Date();
+  const date = now.toLocaleDateString("zh-TW");
+  const time = now.toLocaleTimeString("zh-TW");
+
+  // 顯示公司網路或異地
+  if (COMPANY_IPS.includes(ip)) {
+    document.getElementById("ipStatus").innerHTML = `<span style="color:green;font-weight:bold">已連接公司網路</span>`;
+  } else {
+    document.getElementById("ipStatus").innerHTML = `<span style="color:orange;font-weight:bold">異地打卡</span>`;
+  }
+
   const payload = {
-    type: "clock",
-    userId: window.userProfile.userId,
-    userName: window.userProfile.displayName,
-    action,
-    ip
+    ip: ip,
+    lineId: profile.userId,
+    name: profile.displayName,
+    date: date,
+    time: time
   };
-  const res = await fetch(GAS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
-  alert(data.status + ": " + (data.message || ""));
+
+  try {
+    const res = await fetch(API_ENDPOINT, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (result.success) {
+      Swal.fire({
+        icon: "success",
+        title: "🎉 打卡成功！",
+        html: `時間：${date} ${time}<br>IP：${ip}`,
+        timer: 3000,
+        showConfirmButton: false
+      });
+    } else {
+      Swal.fire({
+        icon: "warning",
+        title: "⚠ 打卡失敗",
+        html: result.message,
+        timer: 3000,
+        showConfirmButton: false
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: "error",
+      title: "❌ 發生錯誤",
+      html: "請通知管理員",
+      timer: 3000,
+      showConfirmButton: false
+    });
+  }
 }
 
-async function getJobOpportunities() {
-  const payload = { type: "job" };
-  const res = await fetch(GAS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
-  const ul = document.getElementById("job-list");
-  ul.innerHTML = "";
-  if (data.status === "success") data.message.forEach(msg => {
-    const li = document.createElement("li");
-    li.innerText = msg;
-    ul.appendChild(li);
-  });
-}
-
-async function showTodayRecords() {
-  const payload = { type: "today", userId: window.userProfile.userId };
-  const res = await fetch(GAS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
-  const ul = document.getElementById("today-list");
-  ul.innerHTML = "";
-  if (data.status === "success") data.message.forEach(msg => {
-    const li = document.createElement("li");
-    li.innerText = msg;
-    ul.appendChild(li);
-  });
-}
-
-main();
+// 初始化
+window.onload = initLiff;
 </script>
 </body>
 </html>
-
 
