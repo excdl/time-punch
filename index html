@@ -22,7 +22,7 @@
 <button id="clockInBtn">一鍵打卡</button>
 
 <script>
-const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyFCHGJlP4HI3l9lQ0GkzUP-e_5rynP7GMu5iSI9QDy6laOYUFTnvPJ00-qhUuOcGw/exec";
+const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbzOK1oW2-wRAQmtRBHRxhio8jjUvE1p2LQPktBBVMfvixe_qGDJOvU26cwrtPuAqSS2/exec";
 const COMPANY_IPS = ["114.34.60.48","220.132.124.179","125.228.248.110","114.34.128.159","220.134.230.241"];
 let userIp = "";
 
