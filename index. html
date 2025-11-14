@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>LIFF 打卡系統</title>
+<script src="https://static.line-scdn.net/liff/edge/2.22/sdk.js"></script>
+</head>
+<body>
+<h1>LIFF 打卡系統</h1>
+<p id="user-info"></p>
+
+<button onclick="clockIn('上班')">上班</button>
+<button onclick="clockIn('下班')">下班</button>
+<button onclick="clockIn('加班上班')">加班上班</button>
+<button onclick="clockIn('加班下班')">加班下班</button>
+<button onclick="getJobOpportunities()">查詢工作機會</button>
+<button onclick="showTodayRecords()">今天打卡紀錄</button>
+
+<h3>工作機會</h3>
+<ul id="job-list"></ul>
+
+<h3>今天打卡紀錄</h3>
+<ul id="today-list"></ul>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/YOUR_DEPLOY_ID/exec"; // 改成你的 Web App URL
+
+async function main() {
+  await liff.init({ liffId: "YOUR_LIFF_ID" });
+  if (!liff.isLoggedIn()) liff.login();
+  else {
+    const profile = await liff.getProfile();
+    document.getElementById('user-info').innerText = `Hi, ${profile.displayName} (ID: ${profile.userId})`;
+    window.userProfile = profile;
+  }
+}
+
+async function getUserIP() {
+  try {
+    const res = await fetch("https://api.ipify.org?format=json");
+    const data = await res.json();
+    return data.ip || "無法取得IP";
+  } catch { return "無法取得IP"; }
+}
+
+async function clockIn(action) {
+  const ip = await getUserIP();
+  const payload = {
+    type: "clock",
+    userId: window.userProfile.userId,
+    userName: window.userProfile.displayName,
+    action,
+    ip
+  };
+  const res = await fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  alert(data.status + ": " + (data.message || ""));
+}
+
+async function getJobOpportunities() {
+  const payload = { type: "job" };
+  const res = await fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  const ul = document.getElementById("job-list");
+  ul.innerHTML = "";
+  if (data.status === "success") data.message.forEach(msg => {
+    const li = document.createElement("li");
+    li.innerText = msg;
+    ul.appendChild(li);
+  });
+}
+
+async function showTodayRecords() {
+  const payload = { type: "today", userId: window.userProfile.userId };
+  const res = await fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  const ul = document.getElementById("today-list");
+  ul.innerHTML = "";
+  if (data.status === "success") data.message.forEach(msg => {
+    const li = document.createElement("li");
+    li.innerText = msg;
+    ul.appendChild(li);
+  });
+}
+
+main();
+</script>
+</body>
+</html>
+
+
